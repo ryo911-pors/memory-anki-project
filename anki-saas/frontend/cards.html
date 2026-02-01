@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anki SaaS - Cards</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            min-height: 100vh;
+        }
+
+        /* Navigation */
+        .nav {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 2rem;
+            display: flex;
+            gap: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .nav a {
+            color: #64748b;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .nav a:hover { background: #f1f5f9; color: #334155; }
+        .nav a.active { background: #eff6ff; color: #2563eb; }
+
+        /* Container */
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        /* API Key Section */
+        .api-key-section {
+            background: white;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e2e8f0;
+        }
+        .api-key-section input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: white;
+            padding: 1.25rem;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2563eb;
+        }
+        .stat-label {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        /* Cards List */
+        .cards-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .cards-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .cards-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .card-item {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.2s;
+        }
+        .card-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .card-type-badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+        .card-type-badge.vocab { background: #dbeafe; color: #1d4ed8; }
+        .card-type-badge.cloze { background: #dcfce7; color: #16a34a; }
+        .card-type-badge.rewrite { background: #fef3c7; color: #d97706; }
+
+        .card-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .card-front {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.25rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .card-back {
+            font-size: 0.875rem;
+            color: #64748b;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .card-meta {
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .card-next {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        .card-next.due {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .card-action-btn {
+            background: none;
+            border: none;
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 8px;
+            color: #94a3b8;
+            transition: all 0.2s;
+        }
+        .card-action-btn:hover {
+            background: #f1f5f9;
+            color: #475569;
+        }
+        .card-action-btn.delete:hover {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+        .card-action-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+        .empty-state p {
+            color: #64748b;
+            margin-bottom: 1.5rem;
+        }
+        .empty-state a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #2563eb;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .empty-state a:hover { background: #1d4ed8; }
+
+        /* Edit Modal */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .modal {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            animation: modalIn 0.2s ease;
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #94a3b8;
+            cursor: pointer;
+        }
+        .modal-body {
+            padding: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #475569;
+            margin-bottom: 0.5rem;
+        }
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+        .btn {
+            padding: 0.75rem 1.25rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #475569;
+        }
+        .btn-secondary:hover { background: #e2e8f0; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 500;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            z-index: 1001;
+            animation: toastIn 0.3s ease;
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        .toast.success { background: #059669; }
+        .toast.error { background: #dc2626; }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="index.html">Chat</a>
+        <a href="review.html">Review</a>
+        <a href="cards.html" class="active">Cards</a>
+    </nav>
+
+    <div class="container">
+        <div class="api-key-section">
+            <input type="password" id="apiKey" placeholder="Enter your API Key">
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalCount">-</div>
+                <div class="stat-label">Total Cards</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="dueCount">-</div>
+                <div class="stat-label">Due Today</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="newCount">-</div>
+                <div class="stat-label">New</div>
+            </div>
+        </div>
+
+        <div class="cards-header">
+            <h2>Your Cards</h2>
+        </div>
+
+        <div class="cards-list" id="cardsList">
+            <div class="empty-state">
+                <p>No cards yet. Start chatting to create flashcards!</p>
+                <a href="index.html">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    Go to Chat
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal-backdrop hidden" id="editModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Edit Card</h3>
+                <button class="modal-close" onclick="closeEditModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Card Type</label>
+                    <select id="editCardType">
+                        <option value="vocab">Vocab</option>
+                        <option value="cloze">Cloze</option>
+                        <option value="rewrite">Rewrite</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Front (Question)</label>
+                    <textarea id="editFront" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Back (Answer)</label>
+                    <textarea id="editBack" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveCard()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let cards = [];
+        let editingCardId = null;
+
+        function getApiKey() {
+            return document.getElementById('apiKey').value;
+        }
+
+        async function loadCards() {
+            const apiKey = getApiKey();
+            if (!apiKey) return;
+
+            try {
+                const [cardsRes, dueRes] = await Promise.all([
+                    fetch(`${API_BASE}/cards`, { headers: { 'X-API-Key': apiKey } }),
+                    fetch(`${API_BASE}/review/due`, { headers: { 'X-API-Key': apiKey } })
+                ]);
+
+                cards = await cardsRes.json();
+                const due = await dueRes.json();
+
+                if (!cardsRes.ok) throw new Error(cards.detail);
+
+                // Update stats
+                document.getElementById('totalCount').textContent = cards.length;
+                document.getElementById('dueCount').textContent = due.count;
+                document.getElementById('newCount').textContent = cards.filter(c => c.repetitions === 0).length || 0;
+
+                renderCards();
+            } catch (e) {
+                console.error('Error:', e);
+            }
+        }
+
+        function renderCards() {
+            const list = document.getElementById('cardsList');
+
+            if (cards.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <p>No cards yet. Start chatting to create flashcards!</p>
+                        <a href="index.html">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            Go to Chat
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = cards.map(card => {
+                const nextReview = new Date(card.next_review);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const isDue = nextReview <= today;
+
+                return `
+                    <div class="card-item" data-id="${card.id}">
+                        <span class="card-type-badge ${card.card_type}">${card.card_type}</span>
+                        <div class="card-content">
+                            <div class="card-front">${escapeHtml(card.front)}</div>
+                            <div class="card-back">${escapeHtml(card.back)}</div>
+                        </div>
+                        <div class="card-meta">
+                            <div class="card-next ${isDue ? 'due' : ''}">${isDue ? 'Due' : formatDate(card.next_review)}</div>
+                        </div>
+                        <div class="card-actions">
+                            <button class="card-action-btn" onclick="openEditModal('${card.id}')" title="Edit">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                            </button>
+                            <button class="card-action-btn delete" onclick="deleteCard('${card.id}')" title="Delete">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3,6 5,6 21,6"/>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            return `${month}/${day}`;
+        }
+
+        function openEditModal(cardId) {
+            const card = cards.find(c => c.id === cardId);
+            if (!card) return;
+
+            editingCardId = cardId;
+            document.getElementById('editCardType').value = card.card_type;
+            document.getElementById('editFront').value = card.front;
+            document.getElementById('editBack').value = card.back;
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            editingCardId = null;
+        }
+
+        async function saveCard() {
+            if (!editingCardId) return;
+
+            const apiKey = getApiKey();
+            const cardType = document.getElementById('editCardType').value;
+            const front = document.getElementById('editFront').value.trim();
+            const back = document.getElementById('editBack').value.trim();
+
+            if (!front || !back) {
+                showToast('Please fill in both fields', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/cards/${editingCardId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({
+                        card_type: cardType,
+                        front: front,
+                        back: back
+                    })
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.detail);
+                }
+
+                closeEditModal();
+                showToast('Card updated successfully', 'success');
+                loadCards();
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+        async function deleteCard(cardId) {
+            if (!confirm('Are you sure you want to delete this card?')) return;
+
+            const apiKey = getApiKey();
+
+            try {
+                const res = await fetch(`${API_BASE}/cards/${cardId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-API-Key': apiKey }
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.detail);
+                }
+
+                showToast('Card deleted', 'success');
+                loadCards();
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            document.querySelectorAll('.toast').forEach(t => t.remove());
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Load API key from localStorage
+        const savedKey = localStorage.getItem('apiKey');
+        if (savedKey) {
+            document.getElementById('apiKey').value = savedKey;
+            loadCards();
+        }
+        document.getElementById('apiKey').addEventListener('change', (e) => {
+            localStorage.setItem('apiKey', e.target.value);
+            loadCards();
+        });
+
+        // Close modal on backdrop click
+        document.getElementById('editModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('editModal')) {
+                closeEditModal();
+            }
+        });
+    </script>
+</body>
+</html>
