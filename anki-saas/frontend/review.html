@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anki SaaS - Review</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            min-height: 100vh;
+        }
+
+        /* Navigation */
+        .nav {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 2rem;
+            display: flex;
+            gap: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .nav a {
+            color: #64748b;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .nav a:hover { background: #f1f5f9; color: #334155; }
+        .nav a.active { background: #eff6ff; color: #2563eb; }
+
+        /* Container */
+        .container {
+            max-width: 768px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        /* API Key Section */
+        .api-key-section {
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e2e8f0;
+        }
+        .api-key-section input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: border-color 0.2s;
+        }
+        .api-key-section input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Progress Section */
+        .progress-section {
+            margin-bottom: 2rem;
+        }
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        .progress-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .progress-count {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+        .progress-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #2563eb);
+            border-radius: 9999px;
+            transition: width 0.5s ease;
+        }
+
+        /* Flip Card */
+        .flip-card-container {
+            perspective: 1000px;
+            margin-bottom: 2rem;
+        }
+        .flip-card {
+            position: relative;
+            width: 100%;
+            min-height: 320px;
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .flip-card.flipped {
+            transform: rotateY(180deg);
+        }
+        .flip-card-face {
+            position: absolute;
+            width: 100%;
+            min-height: 320px;
+            backface-visibility: hidden;
+            border-radius: 16px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .flip-card-back {
+            transform: rotateY(180deg);
+            background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+        }
+        .card-type-badge {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .card-type-badge.vocab { background: #dbeafe; color: #1d4ed8; }
+        .card-type-badge.cloze { background: #dcfce7; color: #16a34a; }
+        .card-type-badge.rewrite { background: #fef3c7; color: #d97706; }
+
+        .card-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+        }
+        .card-content {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #1e293b;
+            text-align: center;
+            line-height: 1.6;
+            max-width: 100%;
+            word-wrap: break-word;
+        }
+        .card-hint {
+            position: absolute;
+            bottom: 1.5rem;
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+
+        /* Show Answer Button */
+        .show-answer-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.875rem 2rem;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 0 auto;
+        }
+        .show-answer-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+        .show-answer-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Rating Buttons */
+        .rating-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+        }
+        .rating-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 1rem 0.5rem;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+        .rating-btn:hover {
+            transform: translateY(-2px);
+        }
+        .rating-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .rating-btn .label {
+            font-size: 0.875rem;
+        }
+        .rating-btn .interval {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+        .rating-btn.again {
+            background: linear-gradient(135deg, #fecaca, #fca5a5);
+            color: #991b1b;
+        }
+        .rating-btn.again:hover { background: linear-gradient(135deg, #fca5a5, #f87171); }
+        .rating-btn.hard {
+            background: linear-gradient(135deg, #fed7aa, #fdba74);
+            color: #9a3412;
+        }
+        .rating-btn.hard:hover { background: linear-gradient(135deg, #fdba74, #fb923c); }
+        .rating-btn.good {
+            background: linear-gradient(135deg, #bbf7d0, #86efac);
+            color: #166534;
+        }
+        .rating-btn.good:hover { background: linear-gradient(135deg, #86efac, #4ade80); }
+        .rating-btn.easy {
+            background: linear-gradient(135deg, #bfdbfe, #93c5fd);
+            color: #1e40af;
+        }
+        .rating-btn.easy:hover { background: linear-gradient(135deg, #93c5fd, #60a5fa); }
+
+        /* Remaining Count */
+        .remaining-count {
+            text-align: center;
+            font-size: 0.875rem;
+            color: #94a3b8;
+            margin-top: 2rem;
+        }
+
+        /* Complete State */
+        .complete-state {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            padding: 3rem;
+            text-align: center;
+            animation: fadeInScale 0.4s ease;
+        }
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .complete-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+        .complete-icon svg {
+            width: 40px;
+            height: 40px;
+            color: #059669;
+        }
+        .complete-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.75rem;
+        }
+        .complete-message {
+            color: #64748b;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        .complete-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        @media (min-width: 480px) {
+            .complete-actions {
+                flex-direction: row;
+                justify-content: center;
+            }
+        }
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .action-btn.primary {
+            background: #2563eb;
+            color: white;
+        }
+        .action-btn.primary:hover { background: #1d4ed8; }
+        .action-btn.secondary {
+            background: white;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+        }
+        .action-btn.secondary:hover { background: #f8fafc; }
+        .action-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Loading State */
+        .loading-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #64748b;
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Card Animation */
+        .card-enter {
+            animation: cardEnter 0.3s ease;
+        }
+        @keyframes cardEnter {
+            from { opacity: 0; transform: translateX(50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="index.html">Chat</a>
+        <a href="review.html" class="active">Review</a>
+        <a href="cards.html">Cards</a>
+    </nav>
+
+    <div class="container">
+        <div class="api-key-section">
+            <input type="password" id="apiKey" placeholder="Enter your API Key">
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Loading your cards...</p>
+        </div>
+
+        <!-- Review Content -->
+        <div id="reviewContent" class="hidden">
+            <!-- Progress -->
+            <div class="progress-section">
+                <div class="progress-header">
+                    <h1>Today's Review</h1>
+                    <span class="progress-count">
+                        <span id="reviewedCount">0</span> / <span id="totalCount">0</span> cards
+                    </span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Flip Card -->
+            <div class="flip-card-container">
+                <div class="flip-card" id="flipCard" onclick="handleCardClick()">
+                    <div class="flip-card-face flip-card-front">
+                        <span class="card-type-badge" id="cardTypeFront"></span>
+                        <span class="card-label">QUESTION</span>
+                        <div class="card-content" id="cardFront"></div>
+                        <span class="card-hint">Click to reveal answer</span>
+                    </div>
+                    <div class="flip-card-face flip-card-back">
+                        <span class="card-type-badge" id="cardTypeBack"></span>
+                        <span class="card-label">ANSWER</span>
+                        <div class="card-content" id="cardBack"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div id="showAnswerContainer">
+                <button class="show-answer-btn" onclick="showAnswer()">
+                    Show Answer
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="ratingContainer" class="hidden">
+                <div class="rating-buttons">
+                    <button class="rating-btn again" onclick="submitRating(0)" id="btnAgain">
+                        <span class="label">Again</span>
+                        <span class="interval" id="intervalAgain">1d</span>
+                    </button>
+                    <button class="rating-btn hard" onclick="submitRating(1)" id="btnHard">
+                        <span class="label">Hard</span>
+                        <span class="interval" id="intervalHard">1d</span>
+                    </button>
+                    <button class="rating-btn good" onclick="submitRating(2)" id="btnGood">
+                        <span class="label">Good</span>
+                        <span class="interval" id="intervalGood">-</span>
+                    </button>
+                    <button class="rating-btn easy" onclick="submitRating(3)" id="btnEasy">
+                        <span class="label">Easy</span>
+                        <span class="interval" id="intervalEasy">-</span>
+                    </button>
+                </div>
+            </div>
+
+            <p class="remaining-count" id="remainingCount"></p>
+        </div>
+
+        <!-- Complete State -->
+        <div id="completeState" class="hidden">
+            <div class="complete-state">
+                <div class="complete-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5.8 11.3L2 22l10.7-3.8M4 3h.01M22 8h.01M15 2h.01M22 20h.01M22 2l-2.24.75a1 1 0 0 0-.64.64L18.38 5.3l-.75-2.24a1 1 0 0 0-.64-.64L14.75 2l2.24.75a1 1 0 0 0 .64.64L18.38 5.3l.75 2.24a1 1 0 0 0 .64.64L22 8l-2.24-.75a1 1 0 0 0-.64-.64L18.38 5.3"/>
+                    </svg>
+                </div>
+                <h2 class="complete-title" id="completeTitle">You're done for today! 🎉</h2>
+                <p class="complete-message" id="completeMessage">Great job! You reviewed all your cards.</p>
+                <div class="complete-actions">
+                    <a href="index.html" class="action-btn primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        Go to Chat
+                    </a>
+                    <a href="cards.html" class="action-btn secondary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="6" width="20" height="12" rx="2"/>
+                            <path d="M12 12h.01"/>
+                        </svg>
+                        View All Cards
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let dueCards = [];
+        let currentIndex = 0;
+        let reviewedCount = 0;
+        let isFlipped = false;
+        let isSubmitting = false;
+
+        function getApiKey() {
+            return document.getElementById('apiKey').value;
+        }
+
+        async function loadDueCards() {
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                showLoading();
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const res = await fetch(`${API_BASE}/review/due`, {
+                    headers: { 'X-API-Key': apiKey }
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail);
+
+                dueCards = data.cards;
+                currentIndex = 0;
+                reviewedCount = 0;
+
+                updateUI();
+            } catch (e) {
+                console.error('Error:', e);
+                showComplete(true);
+            }
+        }
+
+        function updateUI() {
+            const total = dueCards.length;
+
+            if (total === 0 || reviewedCount >= total) {
+                showComplete(total === 0);
+                return;
+            }
+
+            hideLoading();
+            document.getElementById('reviewContent').classList.remove('hidden');
+            document.getElementById('completeState').classList.add('hidden');
+
+            // Update progress
+            document.getElementById('reviewedCount').textContent = reviewedCount;
+            document.getElementById('totalCount').textContent = total;
+            const progress = (reviewedCount / total) * 100;
+            document.getElementById('progressFill').style.width = `${progress}%`;
+
+            // Update card
+            const card = dueCards[currentIndex];
+            if (card) {
+                showCard(card);
+            }
+
+            // Update remaining
+            const remaining = total - reviewedCount - 1;
+            document.getElementById('remainingCount').textContent =
+                remaining > 0 ? `${remaining} cards remaining after this one` : 'This is your last card!';
+        }
+
+        function showCard(card) {
+            // Reset flip state
+            isFlipped = false;
+            document.getElementById('flipCard').classList.remove('flipped');
+            document.getElementById('showAnswerContainer').classList.remove('hidden');
+            document.getElementById('ratingContainer').classList.add('hidden');
+
+            // Set card type badge
+            const typeClass = card.card_type || 'vocab';
+            document.getElementById('cardTypeFront').textContent = typeClass;
+            document.getElementById('cardTypeFront').className = `card-type-badge ${typeClass}`;
+            document.getElementById('cardTypeBack').textContent = typeClass;
+            document.getElementById('cardTypeBack').className = `card-type-badge ${typeClass}`;
+
+            // Set content
+            document.getElementById('cardFront').textContent = card.front;
+            document.getElementById('cardBack').textContent = card.back;
+
+            // Add animation
+            document.getElementById('flipCard').classList.add('card-enter');
+            setTimeout(() => {
+                document.getElementById('flipCard').classList.remove('card-enter');
+            }, 300);
+
+            // Update interval hints (simplified)
+            document.getElementById('intervalAgain').textContent = '1d';
+            document.getElementById('intervalHard').textContent = '1d';
+            document.getElementById('intervalGood').textContent = '~6d';
+            document.getElementById('intervalEasy').textContent = '~10d';
+        }
+
+        function handleCardClick() {
+            if (!isFlipped) {
+                showAnswer();
+            }
+        }
+
+        function showAnswer() {
+            isFlipped = true;
+            document.getElementById('flipCard').classList.add('flipped');
+            document.getElementById('showAnswerContainer').classList.add('hidden');
+            document.getElementById('ratingContainer').classList.remove('hidden');
+        }
+
+        async function submitRating(rating) {
+            if (isSubmitting) return;
+            isSubmitting = true;
+
+            const apiKey = getApiKey();
+            const card = dueCards[currentIndex];
+
+            // Disable buttons
+            document.querySelectorAll('.rating-btn').forEach(btn => btn.disabled = true);
+
+            try {
+                const res = await fetch(`${API_BASE}/review/${card.id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({ rating })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail);
+
+                reviewedCount++;
+                currentIndex++;
+
+                // Small delay before showing next card
+                setTimeout(() => {
+                    updateUI();
+                    isSubmitting = false;
+                    document.querySelectorAll('.rating-btn').forEach(btn => btn.disabled = false);
+                }, 200);
+
+            } catch (e) {
+                console.error('Error:', e);
+                alert('Error: ' + e.message);
+                isSubmitting = false;
+                document.querySelectorAll('.rating-btn').forEach(btn => btn.disabled = false);
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('reviewContent').classList.add('hidden');
+            document.getElementById('completeState').classList.add('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingState').classList.add('hidden');
+        }
+
+        function showComplete(noCards = false) {
+            hideLoading();
+            document.getElementById('reviewContent').classList.add('hidden');
+            document.getElementById('completeState').classList.remove('hidden');
+
+            if (noCards) {
+                document.getElementById('completeTitle').textContent = "No cards to review! 🎉";
+                document.getElementById('completeMessage').textContent =
+                    "No cards due for review. Start chatting to create new cards!";
+            } else {
+                document.getElementById('completeTitle').textContent = "You're done for today! 🎉";
+                document.getElementById('completeMessage').textContent =
+                    `Great job! You reviewed ${reviewedCount} cards today.`;
+            }
+        }
+
+        // Load API key from localStorage
+        const savedKey = localStorage.getItem('apiKey');
+        if (savedKey) {
+            document.getElementById('apiKey').value = savedKey;
+            loadDueCards();
+        }
+
+        document.getElementById('apiKey').addEventListener('change', (e) => {
+            localStorage.setItem('apiKey', e.target.value);
+            loadDueCards();
+        });
+
+        document.getElementById('apiKey').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                localStorage.setItem('apiKey', e.target.value);
+                loadDueCards();
+            }
+        });
+    </script>
+</body>
+</html>
