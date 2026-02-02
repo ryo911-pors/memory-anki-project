@@ -134,6 +134,8 @@ def calculate_sm2(rating, repetitions, ease_factor, interval):
 | POST | `/chat` | AIとチャット |
 | POST | `/lookup` | 単語の意味を取得 |
 | POST | `/quick` | カードを即座に作成 |
+| POST | `/generate` | 会話からカード候補を生成 |
+| POST | `/approve` | カード候補を承認して作成 |
 | GET | `/cards` | カード一覧取得 |
 | PUT | `/cards/{id}` | カード編集 |
 | DELETE | `/cards/{id}` | カード削除 |
@@ -235,13 +237,16 @@ memory-anki-project/
 │   │   ├── routers/          # API endpoints
 │   │   └── services/         # Business logic
 │   ├── alembic/              # Migrations
+│   ├── scripts/              # Utility scripts
+│   │   └── create_user.py    # Test user creation
 │   ├── tests/                # Unit tests
 │   ├── Dockerfile
 │   └── requirements.txt
 ├── frontend/
 │   ├── index.html            # Chat page
 │   ├── review.html           # Review page
-│   └── cards.html            # Cards page
+│   ├── cards.html            # Cards page
+│   └── vercel.json           # Vercel deploy config
 ├── docker-compose.yml
 ├── docker-compose.prod.yml
 └── README.md
