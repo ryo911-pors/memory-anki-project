@@ -9,9 +9,6 @@
 
 ## Demo
 
-<!-- デモURLまたはGIF/動画を追加 -->
-
-
 📹 **Demo Video**: [Coming Soon]
 
 ## Screenshots
