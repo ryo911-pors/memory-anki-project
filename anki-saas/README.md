@@ -95,10 +95,8 @@
 ### Infrastructure
 | Technology | Purpose |
 |------------|---------|
-| **Docker** | コンテナ化 |
-| **GitHub Actions** | CI/CD |
-| **Railway** | Backend Hosting |
-| **Vercel** | Frontend Hosting |
+| **Docker** | PostgreSQLコンテナ化 |
+| **GitHub Actions** | CI/CD (テスト自動実行) |
 
 ## SM-2 Algorithm
 
@@ -209,24 +207,6 @@ docker-compose -f docker-compose.prod.yml up -d
 cd backend
 pytest tests/ -v
 ```
-
-## Deployment
-
-### Backend (Railway)
-
-1. Create Railway account
-2. Connect GitHub repository
-3. Set environment variables:
-   - `DATABASE_URL` (Railway provides)
-   - `ANTHROPIC_API_KEY`
-4. Deploy
-
-### Frontend (Vercel)
-
-1. Create Vercel account
-2. Import repository
-3. Set root directory to `frontend`
-4. Deploy
 
 ## Project Structure
 
