@@ -1,4 +1,4 @@
-# Memory Anki - AI-Powered Flashcard SaaS
+# Memory Anki - AI-Powered Flashcard
 
 > AIチャットで学んだ内容を自動でフラッシュカード化し、SM-2アルゴリズムで効率的に復習できるWebアプリケーション
 
