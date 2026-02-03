@@ -258,6 +258,16 @@
             color: #475569;
         }
         .popup-btn.secondary:hover { background: #e2e8f0; }
+        .popup-btn.anki {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+        }
+        .popup-btn.anki:hover { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+        .popup-btn.anki svg { flex-shrink: 0; }
 
         .popup-loading {
             text-align: center;
@@ -286,6 +296,122 @@
         }
         .toast.success { background: #059669; }
         .toast.error { background: #dc2626; }
+
+        /* Particle Effect */
+        .particle-container {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+        }
+        .particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: particleFly 0.8s ease-out forwards;
+        }
+        @keyframes particleFly {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(var(--tx), var(--ty)) scale(0);
+            }
+        }
+
+        /* Ripple Effect */
+        .word {
+            position: relative;
+            overflow: hidden;
+        }
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(59, 130, 246, 0.4);
+            transform: scale(0);
+            animation: rippleEffect 0.6s ease-out;
+            pointer-events: none;
+        }
+        @keyframes rippleEffect {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        /* Enhanced hover effects */
+        .word {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .word:hover {
+            background: rgba(59, 130, 246, 0.15);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+        }
+        .message.user .word:hover {
+            background: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 2px 8px rgba(255, 255, 255, 0.2);
+        }
+
+        /* Button press effect */
+        .btn, .popup-btn {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn:active, .popup-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Message slide-in */
+        .message {
+            animation: messageSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Popup bounce */
+        .word-popup {
+            animation: popupBounce 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes popupBounce {
+            from {
+                opacity: 0;
+                transform: scale(0.8) translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        /* Success toast with icon */
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .toast::before {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background-size: contain;
+            flex-shrink: 0;
+        }
+        .toast.success::before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M5 13l4 4L19 7'/%3E%3C/svg%3E");
+        }
+        .toast.error::before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M6 18L18 6M6 6l12 12'/%3E%3C/svg%3E");
+        }
 
         /* Backdrop */
         .backdrop {
@@ -358,6 +484,12 @@
             <div class="popup-actions">
                 <button class="popup-btn secondary" onclick="closePopup()">Cancel</button>
                 <button class="popup-btn primary" onclick="createCard()">Add Card</button>
+                <button class="popup-btn anki" onclick="createCardAndSendToAnki()" title="Add card and send to Anki">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                    </svg>
+                    Anki
+                </button>
             </div>
         </div>
     </div>
@@ -374,7 +506,7 @@
 
         function makeWordsClickable(text, isUserMessage = false) {
             // Split by words while preserving punctuation and spaces
-            return text.replace(/([a-zA-Z]+)/g, '<span class="word" onclick="lookupWord(\'$1\', this)">$1</span>');
+            return text.replace(/([a-zA-Z]+)/g, '<span class="word" onclick="lookupWord(\'$1\', this, event)">$1</span>');
         }
 
         function appendMessage(role, content) {
@@ -436,11 +568,16 @@
             }
         }
 
-        async function lookupWord(word, element) {
+        async function lookupWord(word, element, event) {
             const apiKey = getApiKey();
             if (!apiKey) {
                 showToast('Please enter your API Key', 'error');
                 return;
+            }
+
+            // Create ripple effect
+            if (event) {
+                createRipple(element, event);
             }
 
             // Get context (the full message text)
@@ -542,8 +679,62 @@
 
                 closePopup();
                 showToast(`Card created: ${currentWordData.word}`, 'success');
+                return data;
             } catch (e) {
                 showToast('Error: ' + e.message, 'error');
+                return null;
+            }
+        }
+
+        async function createCardAndSendToAnki() {
+            if (!currentWordData) return;
+
+            const apiKey = getApiKey();
+
+            try {
+                // First create the card
+                const res = await fetch(`${API_BASE}/quick`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({
+                        word: currentWordData.word,
+                        meaning: currentWordData.meaning,
+                        context: currentContext,
+                        card_type: 'vocab'
+                    })
+                });
+                const cardData = await res.json();
+                if (!res.ok) throw new Error(cardData.detail);
+
+                // Then send to Anki
+                const ankiRes = await fetch(`${API_BASE}/anki/export/${cardData.id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({
+                        deck_name: 'English Learning'
+                    })
+                });
+                const ankiData = await ankiRes.json();
+
+                closePopup();
+
+                if (ankiData.success) {
+                    showToast(`Added to Anki: ${currentWordData.word}`, 'success');
+                } else {
+                    showToast(`Card saved. Anki: ${ankiData.message}`, 'success');
+                }
+            } catch (e) {
+                if (e.message.includes('Cannot connect') || e.message.includes('503')) {
+                    showToast('Card saved, but Anki is not running', 'error');
+                } else {
+                    showToast('Error: ' + e.message, 'error');
+                }
             }
         }
 
@@ -556,7 +747,57 @@
             toast.textContent = message;
             document.body.appendChild(toast);
 
+            // Trigger particle effect for success
+            if (type === 'success') {
+                createParticles(window.innerWidth / 2, window.innerHeight - 60);
+            }
+
             setTimeout(() => toast.remove(), 3000);
+        }
+
+        function createParticles(x, y) {
+            const container = document.createElement('div');
+            container.className = 'particle-container';
+            container.style.left = x + 'px';
+            container.style.top = y + 'px';
+            document.body.appendChild(container);
+
+            const colors = ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'];
+            const particleCount = 12;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+
+                const angle = (i / particleCount) * Math.PI * 2;
+                const distance = 40 + Math.random() * 40;
+                const tx = Math.cos(angle) * distance;
+                const ty = Math.sin(angle) * distance - 20;
+
+                particle.style.setProperty('--tx', tx + 'px');
+                particle.style.setProperty('--ty', ty + 'px');
+
+                container.appendChild(particle);
+            }
+
+            setTimeout(() => container.remove(), 1000);
+        }
+
+        function createRipple(element, event) {
+            const ripple = document.createElement('span');
+            ripple.className = 'ripple';
+
+            const rect = element.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = (event.clientX - rect.left - size / 2) + 'px';
+            ripple.style.top = (event.clientY - rect.top - size / 2) + 'px';
+
+            element.appendChild(ripple);
+
+            setTimeout(() => ripple.remove(), 600);
         }
 
         // Load API key from localStorage

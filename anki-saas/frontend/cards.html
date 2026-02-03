@@ -93,6 +93,33 @@
             font-weight: 600;
             color: #1e293b;
         }
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .export-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1rem;
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .export-btn:hover {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            transform: translateY(-1px);
+        }
+        .export-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
 
         .cards-list {
             display: flex;
@@ -108,10 +135,22 @@
             display: flex;
             align-items: center;
             gap: 1rem;
-            transition: all 0.2s;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: cardSlideIn 0.3s ease-out backwards;
         }
         .card-item:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
+        }
+        @keyframes cardSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .card-type-badge {
@@ -338,6 +377,43 @@
         .toast.success { background: #059669; }
         .toast.error { background: #dc2626; }
 
+        /* Toast with icon */
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .toast::before {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background-size: contain;
+            flex-shrink: 0;
+        }
+        .toast.success::before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M5 13l4 4L19 7'/%3E%3C/svg%3E");
+        }
+        .toast.error::before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M6 18L18 6M6 6l12 12'/%3E%3C/svg%3E");
+        }
+
+        /* Button animations */
+        .btn, .card-action-btn {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn:active, .card-action-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Stat card hover */
+        .stat-card {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
         .hidden { display: none !important; }
     </style>
 </head>
@@ -370,6 +446,14 @@
 
         <div class="cards-header">
             <h2>Your Cards</h2>
+            <div class="header-actions">
+                <button class="export-btn" onclick="exportAllToAnki()" id="exportBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                    </svg>
+                    Export All to Anki
+                </button>
+            </div>
         </div>
 
         <div class="cards-list" id="cardsList">
@@ -606,6 +690,57 @@
             document.body.appendChild(toast);
 
             setTimeout(() => toast.remove(), 3000);
+        }
+
+        async function exportAllToAnki() {
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                showToast('Please enter your API Key', 'error');
+                return;
+            }
+
+            if (cards.length === 0) {
+                showToast('No cards to export', 'error');
+                return;
+            }
+
+            const exportBtn = document.getElementById('exportBtn');
+            exportBtn.disabled = true;
+            exportBtn.textContent = 'Exporting...';
+
+            try {
+                const res = await fetch(`${API_BASE}/anki/export-all`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({
+                        deck_name: 'English Learning'
+                    })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    showToast(`Exported ${data.exported_count} cards to Anki!`, 'success');
+                } else {
+                    throw new Error(data.detail);
+                }
+            } catch (e) {
+                if (e.message.includes('Cannot connect') || e.message.includes('503')) {
+                    showToast('Anki is not running. Please open Anki first.', 'error');
+                } else {
+                    showToast('Error: ' + e.message, 'error');
+                }
+            } finally {
+                exportBtn.disabled = false;
+                exportBtn.innerHTML = `
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                    </svg>
+                    Export All to Anki
+                `;
+            }
         }
 
         // Load API key from localStorage
