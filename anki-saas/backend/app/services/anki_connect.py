@@ -47,6 +47,34 @@ async def get_deck_names() -> list[str]:
     return await invoke("deckNames")
 
 
+async def get_model_names() -> list[str]:
+    """
+    Get list of all model (note type) names
+    """
+    return await invoke("modelNames")
+
+
+async def find_basic_model() -> str:
+    """
+    Find a basic model that works for simple Front/Back cards.
+    Checks for common names in different languages.
+    """
+    models = await get_model_names()
+
+    # Common names for basic model in different languages
+    basic_names = ["Basic", "基本", "Basic (and reversed card)", "基本（様式カードとその逆）"]
+
+    for name in basic_names:
+        if name in models:
+            return name
+
+    # Fallback: return first model that exists
+    if models:
+        return models[0]
+
+    raise Exception("No models found in Anki")
+
+
 async def create_deck(deck_name: str) -> int:
     """
     Create a new deck (returns deck ID)
@@ -64,13 +92,20 @@ async def add_note(
     Add a note (card) to Anki
     Returns the note ID
     """
+    # Find appropriate model name (handles Japanese Anki)
+    model_name = await find_basic_model()
+
+    # Determine field names based on model
+    # Japanese Anki uses "表面" and "裏面" instead of "Front" and "Back"
+    if model_name == "基本":
+        fields = {"表面": front, "裏面": back}
+    else:
+        fields = {"Front": front, "Back": back}
+
     note = {
         "deckName": deck_name,
-        "modelName": "Basic",
-        "fields": {
-            "Front": front,
-            "Back": back
-        },
+        "modelName": model_name,
+        "fields": fields,
         "options": {
             "allowDuplicate": False,
             "duplicateScope": "deck"
@@ -86,15 +121,21 @@ async def add_notes(notes: list[dict]) -> list[int]:
     Add multiple notes at once
     Returns list of note IDs (None for failed notes)
     """
+    # Find appropriate model name (handles Japanese Anki)
+    model_name = await find_basic_model()
+
     anki_notes = []
     for note in notes:
+        # Determine field names based on model
+        if model_name == "基本":
+            fields = {"表面": note["front"], "裏面": note["back"]}
+        else:
+            fields = {"Front": note["front"], "Back": note["back"]}
+
         anki_notes.append({
             "deckName": note.get("deck_name", "Default"),
-            "modelName": "Basic",
-            "fields": {
-                "Front": note["front"],
-                "Back": note["back"]
-            },
+            "modelName": model_name,
+            "fields": fields,
             "options": {
                 "allowDuplicate": False,
                 "duplicateScope": "deck"
