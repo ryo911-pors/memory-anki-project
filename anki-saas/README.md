@@ -134,10 +134,6 @@ def calculate_sm2(rating, repetitions, ease_factor, interval):
 | DELETE | `/cards/{id}` | カード削除 |
 | GET | `/review/due` | 今日の復習カード |
 | POST | `/review/{id}` | 復習結果を送信 |
-| GET | `/anki/status` | AnkiConnect接続確認 |
-| GET | `/anki/decks` | Ankiデッキ一覧 |
-| POST | `/anki/export/{id}` | カードをAnkiにエクスポート |
-| POST | `/anki/export-all` | 全カードをAnkiにエクスポート |
 
 ## Getting Started
 
