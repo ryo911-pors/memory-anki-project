@@ -446,14 +446,6 @@
 
         <div class="cards-header">
             <h2>Your Cards</h2>
-            <div class="header-actions">
-                <button class="export-btn" onclick="exportAllToAnki()" id="exportBtn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-                    </svg>
-                    Export All to Anki
-                </button>
-            </div>
         </div>
 
         <div class="cards-list" id="cardsList">
@@ -692,57 +684,6 @@
             document.body.appendChild(toast);
 
             setTimeout(() => toast.remove(), 3000);
-        }
-
-        async function exportAllToAnki() {
-            const apiKey = getApiKey();
-            if (!apiKey) {
-                showToast('Please enter your API Key', 'error');
-                return;
-            }
-
-            if (cards.length === 0) {
-                showToast('No cards to export', 'error');
-                return;
-            }
-
-            const exportBtn = document.getElementById('exportBtn');
-            exportBtn.disabled = true;
-            exportBtn.textContent = 'Exporting...';
-
-            try {
-                const res = await fetch(`${API_BASE}/anki/export-all`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-API-Key': apiKey
-                    },
-                    body: JSON.stringify({
-                        deck_name: 'English Learning'
-                    })
-                });
-                const data = await res.json();
-
-                if (res.ok) {
-                    showToast(`Exported ${data.exported_count} cards to Anki!`, 'success');
-                } else {
-                    throw new Error(data.detail);
-                }
-            } catch (e) {
-                if (e.message.includes('Cannot connect') || e.message.includes('503')) {
-                    showToast('Anki is not running. Please open Anki first.', 'error');
-                } else {
-                    showToast('Error: ' + e.message, 'error');
-                }
-            } finally {
-                exportBtn.disabled = false;
-                exportBtn.innerHTML = `
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-                    </svg>
-                    Export All to Anki
-                `;
-            }
         }
 
         // Load API key from localStorage

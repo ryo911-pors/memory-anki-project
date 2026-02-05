@@ -258,16 +258,6 @@
             color: #475569;
         }
         .popup-btn.secondary:hover { background: #e2e8f0; }
-        .popup-btn.anki {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.25rem;
-        }
-        .popup-btn.anki:hover { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
-        .popup-btn.anki svg { flex-shrink: 0; }
 
         .popup-loading {
             text-align: center;
@@ -484,12 +474,6 @@
             <div class="popup-actions">
                 <button class="popup-btn secondary" onclick="closePopup()">Cancel</button>
                 <button class="popup-btn primary" onclick="createCard()">Add Card</button>
-                <button class="popup-btn anki" onclick="createCardAndSendToAnki()" title="Add card and send to Anki">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-                    </svg>
-                    Anki
-                </button>
             </div>
         </div>
     </div>
@@ -685,58 +669,6 @@
             } catch (e) {
                 showToast('Error: ' + e.message, 'error');
                 return null;
-            }
-        }
-
-        async function createCardAndSendToAnki() {
-            if (!currentWordData) return;
-
-            const apiKey = getApiKey();
-
-            try {
-                // First create the card
-                const res = await fetch(`${API_BASE}/quick`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-API-Key': apiKey
-                    },
-                    body: JSON.stringify({
-                        word: currentWordData.word,
-                        meaning: currentWordData.meaning,
-                        context: currentContext,
-                        card_type: 'vocab'
-                    })
-                });
-                const cardData = await res.json();
-                if (!res.ok) throw new Error(cardData.detail);
-
-                // Then send to Anki
-                const ankiRes = await fetch(`${API_BASE}/anki/export/${cardData.id}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-API-Key': apiKey
-                    },
-                    body: JSON.stringify({
-                        deck_name: 'English Learning'
-                    })
-                });
-                const ankiData = await ankiRes.json();
-
-                closePopup();
-
-                if (ankiData.success) {
-                    showToast(`Added to Anki: ${currentWordData.word}`, 'success');
-                } else {
-                    showToast(`Card saved. Anki: ${ankiData.message}`, 'success');
-                }
-            } catch (e) {
-                if (e.message.includes('Cannot connect') || e.message.includes('503')) {
-                    showToast('Card saved, but Anki is not running', 'error');
-                } else {
-                    showToast('Error: ' + e.message, 'error');
-                }
             }
         }
 
