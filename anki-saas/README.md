@@ -9,6 +9,8 @@
 
 ## Demo
 
+🌐 **Live Demo**: [https://memory-anki-project.vercel.app](https://memory-anki-project.vercel.app)
+
 📹 **Demo Video**: [Coming Soon]
 
 ## Screenshots
@@ -94,6 +96,9 @@
 |------------|---------|
 | **Docker** | PostgreSQLコンテナ化 |
 | **GitHub Actions** | CI/CD (テスト自動実行) |
+| **Render** | バックエンドホスティング |
+| **Neon** | PostgreSQLクラウドDB |
+| **Vercel** | フロントエンドホスティング |
 
 ## SM-2 Algorithm
 
