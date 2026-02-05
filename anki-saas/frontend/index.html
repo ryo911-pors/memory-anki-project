@@ -495,7 +495,9 @@
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:8000';
+        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:8000'
+            : 'https://anki-saas-api.onrender.com';
         let conversationId = null;
         let currentWordData = null;
         let currentContext = null;
