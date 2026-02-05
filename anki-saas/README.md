@@ -242,16 +242,8 @@ memory-anki-project/
 └── README.md
 ```
 
-## AnkiConnect Setup
 
-ローカルAnkiアプリと連携するには:
 
-1. **Ankiをインストール**: https://apps.ankiweb.net/
-2. **AnkiConnectプラグインをインストール**:
-   - Ankiを開く → ツール → アドオン → 新たにアドオンを取得
-   - コード `2055492159` を入力
-   - Ankiを再起動
-3. **Ankiを起動した状態で**アプリの「Anki」ボタンを使用
 
 ## Future Improvements
 
