@@ -9,9 +9,9 @@
 
 ## Demo
 
-🌐 **Live Demo**: [https://memory-anki-project.vercel.app](https://memory-anki-project.vercel.app)
+**Live Demo**: [https://memory-anki-project.vercel.app](https://memory-anki-project.vercel.app)
 
-📹 **Demo Video**: [Coming Soon]
+
 
 ## Screenshots
 
